@@ -124,7 +124,20 @@ def temp(ctx, location):
     """
     api_key = ctx.obj['api_key']
     temp, low, high = current_temp(location, api_key)
-    print(f"Current Temperature is {temp} with a low of {low} and a high of {high}")
+    print(f"Current Temperature is {temp} with a low of {low} "
+          f"and a high of {high}")
+
+
+@main.command()
+@click.argument('location')
+@click.pass_context
+def dump(ctx, location):
+    query_params = {
+        'q': location,
+        'appid': ctx.obj['api_key'],
+        'units': 'imperial'}
+    response = requests.get(API_URL, params=query_params)
+    print(response.json())
 
 
 if __name__ == "__main__":
