@@ -63,3 +63,6 @@ target/
 
 #VIM files
 *.swp
+
+#Weather Data Files
+data/
