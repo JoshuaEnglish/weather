@@ -1,0 +1,23 @@
+Getting Started
+===============
+
+As a learning experience, following the three tutorials referenced in the 
+documentation and then reading :doc:`tutorial` will teach you what you need
+to know.
+
+Otherwise, install from GitHub using::
+
+    $ pip install git+https://github.com/JoshuaEnglish/weather.git
+
+You will need an `api key`_ from OpenWeatherMap.org to make this tool work.
+Once you have this key you can enter it into the program with::
+
+    $ weather config
+
+The program will prompt you to paste your API Key and it will be stored for
+future use.
+
+
+
+
+.. _api key: http://openweathermap.org/appid

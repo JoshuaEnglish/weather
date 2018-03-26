@@ -20,6 +20,8 @@ import os
 import logging
 import json
 import time
+import datetime
+from collections import defaultdict
 
 import click
 import requests
@@ -250,3 +252,52 @@ def dump(ctx, location):
     logging.info("Getting JSON dump for %s", location)
     response = get_api_response(ctx, 'current', location)
     print(response)
+
+
+def date_bit(text):
+    return datetime.datetime.strptime(text, "%Y-%m-%d %H:%M:%S").date()
+
+
+@main.command()
+@click.argument('location')
+@click.pass_context
+def forecast(ctx, location):
+    """
+    List the lows and highs for the next few days
+    """
+    logging.info("Getting 5-day highs forcast")
+    response = get_api_response(ctx, 'forecast', location)
+    data = defaultdict(list)
+
+    for thing in response['list']:
+        data[date_bit(thing['dt_txt'])].append(
+                (float(thing['main']['temp_min']),
+                 float(thing['main']['temp_max']),
+                 thing['weather'][0]['description']))
+
+    for day in sorted(data):
+        print(day,
+              min([item[0] for item in data[day]]),
+              max([item[1] for item in data[day]]),
+              ', '.join([item[2] for item in data[day]]))
+
+
+@main.command()
+@click.argument('location')
+@click.pass_context
+def howmuchrain(ctx, location):
+    """
+    Total the amount of rain for the next five days.
+    """
+    logging.info("Getting 5-day rain totals")
+    response = get_api_response(ctx, 'forecast', location)
+    data = defaultdict(float)
+
+    for thing in response['list']:
+        data[date_bit(thing['dt_txt'])] += thing['rain'].get('3h', 0.0)
+
+    for day in sorted(data):
+        print(day.strftime("%a %m/%d"), "{:0.2f}mm".format(data[day]),
+              "({:0.3f} inches)".format(data[day]*0.0393701))
+    total = sum(data[day] for day in data)
+    print("Total: {:0.2f}mm ({:0.3f} inches".format(total, total*0.0393701))
