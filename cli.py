@@ -10,19 +10,11 @@ Turned into a full command line using entry points fromAmir Rachum's tutorial at
 https://amir.rachum.com/blog/2017/07/28/python-entry-points/
 
 OpenWeatherMaps offers a free API and requests free users do not rush the
-servers and wait 10 minutes between calls for current weather. The third version
-of this code will then store the results of a previous call and retrieve it
-if it is within a given time frame. I'm going to use 10 minutes here.
-
-Before I implement that I want to implement logging
-
-And then I want to implement using City IDs instead of names. I may not be
-getting results for my Portland.
-
-Once the simple logging mechanism is built, the next step is to decide how
-to data will be stored.
-
+servers and wait 10 minutes between calls for current weather. To honor this
+request there is a caching mechanism that stores results and only requests
+fresh data from the server if the cached response is over 10 minutes old.
 """
+
 import re
 import os
 import logging
@@ -56,6 +48,10 @@ class ApiKey(click.ParamType):
 
 
 def build_query(ctx: click.core.Context, location: str) -> dict:
+    """
+    Create the query dictionary for the api using the current location or
+    stored location ID
+    """
 
     query = {
         'appid': ctx.obj['api_key'],
@@ -124,8 +120,10 @@ def main(ctx, api_key, api_key_file):
     A little weather tool that shows you the current weather in a LOCATION of
     your choice. Provide the city name and optionally a two-digit country code.
     Here are two examples:
+
     1. London,UK
     2. Canmore
+
     You need a valid API key from OpenWeatherMap for the tool to work. You can
     sign up for a free account at https://openweathermap.org/appid.
     """
@@ -171,6 +169,11 @@ def config(ctx):
 
 
 def get_city_data():
+    """
+    Returns a dictionary of previously stored city IDs.
+    The list of City IDs can be download from
+    http://bulk.openweathermap.org/sample/city.list.json.gz
+    """
     cities_path = os.path.join(DATA_PATH, 'cities.json')
     if not os.path.exists(cities_path) or os.stat(cities_path).st_size == 0:
         logging.info("Creating empty cities file")
@@ -184,6 +187,9 @@ def get_city_data():
 
 
 def write_city_data(city_data):
+    """
+    Stores the city data
+    """
     cities_path = os.path.join(DATA_PATH, 'cities.json')
     with open(cities_path, 'w') as fp:
         json.dump(city_data, fp)
