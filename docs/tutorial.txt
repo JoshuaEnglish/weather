@@ -1,0 +1,106 @@
+=====================================
+Tutorial - Building the extended tool
+=====================================
+
+After following the two tutorials from Seb Vetter, I created a setup.py file
+using entry_points to give me access to the tool under ``weather`` instead
+of ``cli.py``. This also meant I could use the tool from any command prompt.
+This also introduced a `bug <https://github.com/JoshuaEnglish/weather/issues/1>`_.
+
+.. literalinclude:: ..\setup.py
+   :caption: setup.py
+   :language: python
+   :linenos:
+
+Logging 
+========
+
+I tucked the following into the ``main`` function:
+
+.. code::
+
+    logging.basicConfig(filename='weather.log',
+                        filemode='w',
+                        format='%(asctime)s:%(levelname)s:%(message)s',
+                        datefmt='%m/%d/%Y %I:%M:%S %p',
+                        level=logging.INFO)
+
+I also added the normal logging.info calls needed to provide output. I chose
+to create a fresh log with every run, so the log only tracks the last time 
+the tool was used.
+
+With the logging done, I could move on to saving cities and the caching 
+mechanism.
+
+Saving Cities
+=============
+
+I decided to store the data with JSON. All I need is a simple dictionary 
+of location, id pairs.  
+
+To implement this I added:
+
+.. code::
+    
+    DATA_PATH = os.path.abspath('.\data')
+
+.. note:: Spoiler Alert
+
+    This is a `bug <https://github.com/JoshuaEnglish/weather/issues/1>`_.
+
+Then I wrote two functions, one to read the stored city data (or create
+the empty file if needed) and one to save the file.
+
+.. literalinclude:: ..\cli.py
+   :pyobject: get_city_data
+
+.. literalinclude:: ..\cli.py
+   :pyobject: write_city_data
+    
+
+Caching Results
+===============
+
+First, I needed to decide how to store the data. JSON does a good job of this,
+and I had two primary API URLs, and so I decided on:
+
+    #. A data directory with the script ("solved" above)
+    #. Saving responses in a <location>-<api>.json file
+    #. Using the last time the file was modified by the system to determine 
+       when to use the cache and when to get a fresh copy
+
+The third point meant I didn't have to store any meta-data alongside the actual
+data. 
+
+.. note:: This could be simplified 
+
+    It turns out the stored dictionary has a `dt` key with a number that can
+    be transformed into a human readable date with 
+    ``time.ctime(response.json()['dt'])`` so the file could be read and use
+    this instead. 
+
+    Using ``os.stat.st_mtime`` may be faster and won't require reading a file
+    that we may have to write over anyway.
+
+
+.. literalinclude:: ..\cli.py
+   :pyobject: get_api_response
+   
+The three lines checking the 'cod' item take care of `this bug 
+<https://github.com/JoshuaEnglish/weather/issues/2>`_.
+
+Building the API query is bundled up into its own function and locks the
+results into imperial units (default is Kelvin!) but it does handle getting
+any stored city id for us.
+
+.. literalinclude:: ..\cli.py
+   :pyobject: build_query
+
+Part of me wants to make the units configurable, and that opens up a few issues.
+Do I keep a Fahrenheit *and* a Celcius copy of a response? That means more files
+to store. I think an easier solution would be to leave the data in Kelvin and
+convert to the preferred unit when collecting data or printing the output. 
+The three scales are linearly related, so the exact point in of conversion 
+shouldn't matter. Such tricks are an "exercise for the reader" at this point.
+I would only bother if I decided I really needed to understand Celcius the same
+way I understand Fahrenheit.

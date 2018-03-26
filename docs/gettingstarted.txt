@@ -8,6 +8,8 @@ to know.
 Otherwise, install from GitHub using::
 
     $ pip install git+https://github.com/JoshuaEnglish/weather.git
+    $ cd weather
+    $ python setup.py 
 
 You will need an `api key`_ from OpenWeatherMap.org to make this tool work.
 Once you have this key you can enter it into the program with::
@@ -17,7 +19,58 @@ Once you have this key you can enter it into the program with::
 The program will prompt you to paste your API Key and it will be stored for
 future use.
 
+Once you have pasted your API key into the system, you can get the current
+weather report with::
+
+    $ weather current Portland
+    The weather in Portland right now: light rain
+
+You can see what the program did under the hood::
+
+    $ type weather.log
+    03/26/2018 12:58:47 PM:INFO:Starting Weather CLI
+    03/26/2018 12:58:47 PM:INFO:Getting current weather for Portland
+    03/26/2018 12:58:47 PM:INFO:Getting response from host
+    03/26/2018 12:58:49 PM:INFO:Caching response to C:\Windows\System32\data\Portland-current.json
 
 
+How do you know you have the right city? You can examine the response::
+
+    $ type data\Portland-current.json
+    {"coord": {"lon": -122.67, "lat": 45.52}, "weather": [{"id": 500, "main":
+    "Rain", "description": "light rain", "icon": "10d"}], "base": "stations",
+    "main": {"temp": 45.5, "pressure": 1028, "humidity": 75, "temp_min": 44.6,
+    "temp_max": 46.4}, "visibility": 16093, "wind": {"speed": 6.93}, "clouds":
+    {"all": 90}, "dt": 1522092900, "sys": {"type": 1, "id": 2963, "message":
+    0.0054, "country": "US", "sunrise": 1522072828, "sunset": 1522117939}, "id":
+    5746545, "name": "Portland", "cod": 200}
+
+I happen to know that my Portland is at longitude -122 and change, and latitude
+45 and and change, so I know this result is right. (Plus, the current weather is
+"light rain" which is accurate for about seven months of the year.) However,
+if I want to check several cities or maybe one of the other Portlands, I'm not
+going to be sure unless I use the city id assignment. In this case, 5746545. 
+(It's the "id" value in the response.)
+
+I don't want to remember Portland is 5746545 and it would be better if the tool
+did that for me::
+
+    $ weather setcity Portland 5746545
+
+Now the next call to the "Portland" location will substitute the exact city id.
+
+Next, if we want the temperature::
+
+    $ weather temp Portland
+    Current temperature is 46.4 with a low of 46.4 and a high of 46.4
+
+If you examine the log::
+
+    $ type weather.log
+    03/26/2018 01:04:03 PM:INFO:Starting Weather CLI
+    03/26/2018 01:04:03 PM:INFO:Getting temperature for Portland
+    03/26/2018 01:04:03 PM:INFO:Returning cached copy of request
+
+You can see the cached data was used instead of a fresh API call.
 
 .. _api key: http://openweathermap.org/appid

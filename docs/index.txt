@@ -25,6 +25,9 @@ minutes old.
    :maxdepth: 2
    :caption: Contents:
 
+   gettingstarted
+   tutorial
+
    code
 
 
