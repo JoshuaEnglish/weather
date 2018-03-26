@@ -6,8 +6,8 @@ Based on the tutorials by Seb Vetter at
 https://dbader.org/blog/python-commandline-tools-with-click
 https://dbader.org/blog/mastering-click-advanced-python-command-line-apps
 
-Turned into a full command line using entry points fromAmir Rachum's tutorial at
-https://amir.rachum.com/blog/2017/07/28/python-entry-points/
+Turned into a full command line using entry points fromAmir Rachum's tutorial
+at https://amir.rachum.com/blog/2017/07/28/python-entry-points/
 
 OpenWeatherMaps offers a free API and requests free users do not rush the
 servers and wait 10 minutes between calls for current weather. To honor this
@@ -17,6 +17,7 @@ fresh data from the server if the cached response is over 10 minutes old.
 
 import re
 import os
+import sys
 import logging
 import json
 import time
@@ -27,7 +28,7 @@ import click
 import requests
 
 SAMPLE_API_KEY = 'b1b15e88fa797225412429c1c50c122a1'
-DATA_PATH = os.path.abspath('.\data')
+DATA_PATH = os.path.abspath(r'.\data')
 API = {'current': 'https://api.openweathermap.org/data/2.5/weather',
        'forecast': 'https://api.openweathermap.org/data/2.5/forecast',
        }
@@ -98,6 +99,10 @@ def get_api_response(ctx: click.core.Context, api: str, location: str) -> dict:
 
     logging.info("Getting response from host")
     response = requests.get(url, params)
+
+    if response.json()['cod'] not in [200, '200']:
+        print("{cod}: {message}".format(**response.json()))
+        sys.exit(1)
 
     logging.info("Caching response to %s", datapath)
     with open(datapath, 'w') as fp:
