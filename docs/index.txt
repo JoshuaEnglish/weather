@@ -18,7 +18,7 @@ work.
 The tool was then turned into a command using Amir Rachum's `Python Entry
 Points Explained
 <https://amir.rachum.com/blog/2017/07/28/python-entry-points/>`_ and expanded
-with a cache mechanism to store data and only refresh it if it is over 10 
+with a cache mechanism to store data and only refresh it if it is over 10
 minutes old.
 
 .. toctree::
