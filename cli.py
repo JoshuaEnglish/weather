@@ -156,7 +156,7 @@ def main(ctx, api_key, api_key_file):
 @click.pass_context
 def config(ctx):
     """
-    Store configuration values in a file, e.g. the API key for OpenWeatherMap.
+    Store the API key for OpenWeatherMap.
     """
     logging.info('Setting Configuration File')
     api_key_file = ctx.obj['api_key_file']
@@ -238,10 +238,9 @@ def temp(ctx, location):
 @click.argument('location')
 @click.pass_context
 def dump(ctx, location):
+    """
+    Show the json response for current weather information
+    """
     logging.info("Getting JSON dump for %s", location)
     response = get_api_response(ctx, 'current', location)
     print(response)
-
-
-if __name__ == "__main__":
-    main()
