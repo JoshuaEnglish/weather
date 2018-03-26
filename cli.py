@@ -27,14 +27,16 @@ import re
 import os
 import logging
 import json
+import time
 
 import click
 import requests
 
 SAMPLE_API_KEY = 'b1b15e88fa797225412429c1c50c122a1'
-CURRENT_WEATHER_API = 'https://api.openweathermap.org/data/2.5/weather'
-FORECAST_API = 'https://api.openweathermap.org/data/2.5/forecast'
 DATA_PATH = os.path.abspath('.\data')
+API = {'current': 'https://api.openweathermap.org/data/2.5/weather',
+       'forecast': 'https://api.openweathermap.org/data/2.5/forecast',
+       }
 
 
 class ApiKey(click.ParamType):
@@ -53,31 +55,56 @@ class ApiKey(click.ParamType):
         return value
 
 
-def current_weather(location, api_key=SAMPLE_API_KEY):
+def build_query(ctx: click.core.Context, location: str) -> dict:
 
-    query_params = {
-        'q': location,
-        'appid': api_key,
-    }
-
-    response = requests.get(CURRENT_WEATHER_API, params=query_params)
-
-    return response.json()['weather'][0]['description']
-
-
-def current_temp(location, api_key=SAMPLE_API_KEY):
-
-    query_params = {
-        'q': location,
-        'appid': api_key,
+    query = {
+        'appid': ctx.obj['api_key'],
         'units': 'imperial',
         }
 
-    response = requests.get(CURRENT_WEATHER_API, params=query_params)
+    city_data = get_city_data()
 
-    data = response.json()['main']
+    if location.isdigit():
+        query['id'] = location
+    elif location in city_data:
+        query['id'] = city_data[location]
+    else:
+        query['q'] = location
 
-    return data['temp'], data['temp_min'], data['temp_max']
+    return query
+
+
+def get_api_response(ctx: click.core.Context, api: str, location: str) -> dict:
+    """Returns the result of a query. Will use a cached query if the cached
+    query is less than 10 minutes old.
+
+    :param ctx: current click Context object
+    :param api: either 'current' or 'forecast'
+    :param location: name or id code of location
+    """
+
+    if api not in API:
+        raise ValueError("api must be 'current' or 'forecast'")
+
+    datapath = os.path.join(DATA_PATH, f"{location}-{api}.json")
+
+    if (os.path.exists(datapath)
+            and (time.time() - os.stat(datapath).st_mtime) <= 600):
+        with open(datapath, 'r') as fp:
+            response = json.load(fp)
+        logging.info("Returning cached copy of request")
+        return response
+
+    params = build_query(ctx, location)
+    url = API[api]
+
+    logging.info("Getting response from host")
+    response = requests.get(url, params)
+
+    logging.info("Caching response to %s", datapath)
+    with open(datapath, 'w') as fp:
+        json.dump(response.json(), fp)
+    return response.json()
 
 
 @click.group()
@@ -87,7 +114,7 @@ def current_temp(location, api_key=SAMPLE_API_KEY):
     help='your API key for the OpenWeatherMap API',
 )
 @click.option(
-    '--config-file', '-c',
+    '--api-key-file', '-c',
     type=click.Path(),
     default='~/.weather.cfg',
 )
@@ -143,6 +170,40 @@ def config(ctx):
         cfg.write(api_key)
 
 
+def get_city_data():
+    cities_path = os.path.join(DATA_PATH, 'cities.json')
+    if not os.path.exists(cities_path) or os.stat(cities_path).st_size == 0:
+        logging.info("Creating empty cities file")
+        with open(cities_path, 'w') as fp:
+            json.dump(dict(), fp)
+        return {}
+
+    with open(cities_path, 'r') as fp:
+        data = json.load(fp)
+    return data
+
+
+def write_city_data(city_data):
+    cities_path = os.path.join(DATA_PATH, 'cities.json')
+    with open(cities_path, 'w') as fp:
+        json.dump(city_data, fp)
+
+
+@main.command()
+@click.argument('city')
+@click.argument('cityid', type=click.INT)
+@click.pass_context
+def setcity(ctx, city, cityid):
+    """
+    Save a city name with a city ID code
+    """
+    logging.info('Setting City %s to %d', city, cityid)
+
+    city_data = get_city_data()
+    city_data[city] = cityid
+    write_city_data(city_data)
+
+
 @main.command()
 @click.argument('location')
 @click.pass_context
@@ -151,9 +212,9 @@ def current(ctx, location):
     Show the current weather for a location using OpenWeatherMap data.
     """
     logging.info("Getting current weather for %s", location)
-    api_key = ctx.obj['api_key']
+    response = get_api_response(ctx, 'current', location)
 
-    weather = current_weather(location, api_key)
+    weather = response['weather'][0]['description']
     print(f"The weather in {location} right now: {weather}.")
 
 
@@ -165,8 +226,10 @@ def temp(ctx, location):
     Show the current temperature and low and high
     """
     logging.info("Getting temperature for %s", location)
-    api_key = ctx.obj['api_key']
-    temp, low, high = current_temp(location, api_key)
+    response = get_api_response(ctx, 'current', location)
+    temp = response['main']['temp']
+    low = response['main']['temp_min']
+    high = response['main']['temp_max']
     print(f"Current Temperature is {temp} with a low of {low} "
           f"and a high of {high}")
 
@@ -176,15 +239,8 @@ def temp(ctx, location):
 @click.pass_context
 def dump(ctx, location):
     logging.info("Getting JSON dump for %s", location)
-    query_params = {
-        'q': location,
-        'appid': ctx.obj['api_key'],
-        'units': 'imperial'}
-    response = requests.get(CURRENT_WEATHER_API, params=query_params)
-    print(response.json())
-    logging.info("Dumping JSON data to dump.json")
-    with open(os.path.join(DATA_PATH,'dump.json'), 'w') as fp:
-        json.dump(response.json(), fp)
+    response = get_api_response(ctx, 'current', location)
+    print(response)
 
 
 if __name__ == "__main__":
