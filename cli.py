@@ -23,6 +23,7 @@ import json
 import time
 import datetime
 from collections import defaultdict
+from itertools import groupby
 
 import click
 import requests
@@ -284,7 +285,7 @@ def forecast(ctx, location):
         print(day,
               min([item[0] for item in data[day]]),
               max([item[1] for item in data[day]]),
-              ', '.join([item[2] for item in data[day]]))
+              ', '.join([k for k, g in groupby(item[2] for item in data[day])]))
 
 
 @main.command()
