@@ -104,3 +104,106 @@ The three scales are linearly related, so the exact point in of conversion
 shouldn't matter. Such tricks are an "exercise for the reader" at this point.
 I would only bother if I decided I really needed to understand Celcius the same
 way I understand Fahrenheit.
+
+Getting the Forecast
+====================
+
+I added the extra features to ``get_api_response`` because I wanted to use the
+other available APIs, such as the forecast API. So far this flexibility isn't
+used. The ``forecast`` command solves this::
+
+	def date_bit(text):
+	    return datetime.datetime.strptime(text, "%Y-%m-%d %H:%M:%S").date()
+
+	@main.command()
+	@click.argument('location')
+	@click.pass_context
+	def forecast(ctx, location):
+	    """
+	    List the lows and highs for the next few days
+	    """
+	    logging.info("Getting 5-day highs forcast")
+	    response = get_api_response(ctx, 'forecast', location)
+	    data = defaultdict(list)
+
+	    for thing in response['list']:
+		data[date_bit(thing['dt_txt'])].append(
+			(float(thing['main']['temp_min']),
+			 float(thing['main']['temp_max']),
+			 thing['weather'][0]['description']))
+
+	    for day in sorted(data):
+		print(day,
+		      min([item[0] for item in data[day]]),
+		      max([item[1] for item in data[day]]),
+		      ', '.join([k for k, g in groupby(item[2] for item in data[day])]))
+
+And because I live in the Great Metropolitan Rain Forest, another question
+could be useful to answer::
+
+
+	@main.command()
+	@click.argument('location')
+	@click.pass_context
+	def howmuchrain(ctx, location):
+	    """
+	    Total the amount of rain for the next five days.
+	    """
+	    logging.info("Getting 5-day rain totals")
+	    response = get_api_response(ctx, 'forecast', location)
+	    data = defaultdict(float)
+
+	    for thing in response['list']:
+		data[date_bit(thing['dt_txt'])] += thing['rain'].get('3h', 0.0)
+
+	    for day in sorted(data):
+		print(day.strftime("%a %m/%d"), "{:0.2f}mm".format(data[day]),
+		      "({:0.3f} inches)".format(data[day]*0.0393701))
+	    total = sum(data[day] for day in data)
+	    print("Total: {:0.2f}mm ({:0.3f} inches".format(total, total*0.0393701))
+
+
+
+Fixing the bug
+==============
+
+One bug I discovered along the way is the script creates a new data folder
+in the current directory of the command line prompt, which is not what I need
+if I want to not make more API calls than the kind OpenWeatherMap providers 
+would like. It also happens that when I was writing documentation and I 
+went from the ``weather`` directory to ``weather/docs`` and ran the script I
+got a new data folder that that just cluttered everything.
+
+Fortunately this is an easy fix. The script currently has
+
+.. code::
+
+   DATA_PATH = os.path.abspath(r'.\data')
+
+Replacing that line with
+
+.. code::
+
+   DATA_PATH = os.path.join(os.path.abspath(os.environ['APPDATA']), 'weather')
+
+Fixes this:: 
+
+	c:\Users\Josh\Documents\python\weather>type weather.log
+	04/01/2018 03:03:28 PM:INFO:Creating default data file
+	04/01/2018 03:03:28 PM:INFO:Starting Weather CLI
+	04/01/2018 03:03:28 PM:INFO:Getting current weather for Portland
+	04/01/2018 03:03:28 PM:INFO:Creating empty cities file
+	04/01/2018 03:03:28 PM:INFO:Getting response from host
+	04/01/2018 03:03:29 PM:INFO:Caching response to C:\Users\Josh\AppData\Roaming\weather\Portland-current.json
+
+	c:\Users\Josh\Documents\python\weather>cd docs
+
+	c:\Users\Josh\Documents\python\weather\docs>weather temp Portland
+	Current Temperature is 48.2 with a low of 46.4 and a high of 50
+
+	c:\Users\Josh\Documents\python\weather\docs>type weather.log
+	04/01/2018 03:05:15 PM:INFO:Starting Weather CLI
+	04/01/2018 03:05:15 PM:INFO:Getting temperature for Portland
+	04/01/2018 03:05:15 PM:INFO:Returning cached copy of request
+	  
+
