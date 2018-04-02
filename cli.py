@@ -232,7 +232,7 @@ def getlocations(ctx):
     """Return a list of stored locations"""
     logging.info("Getting list of stored cities")
     city_data = get_city_data()
-    for key, val in city_data:
+    for key, val in city_data.items():
         print(val, key)
 
 
