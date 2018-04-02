@@ -206,4 +206,66 @@ Fixes this::
 	04/01/2018 03:05:15 PM:INFO:Getting temperature for Portland
 	04/01/2018 03:05:15 PM:INFO:Returning cached copy of request
 	  
+But wait, there's more ...
+==========================
+
+I thought I had finished up and everything would work and it does work as I
+want it to, but it doesn't work as I expected it to.
+
+There is an easy way to set a city, but no way to get a list of stored cities,
+which really are locations so I went ahead and called the new idea
+
+.. code:: 
+
+
+    @main.command()
+    @click.pass_context
+    def getlocations(ctx):
+        """Return a list of stored locations"""
+        logging.info("Getting list of stored cities")
+        city_data = get_city_data()
+        for key, val in city_data:
+            print(val, key)
+
+It is still a problem that the location I saved earlier is not copied to the
+new data directory when I fixed that bug, but that only affected me and was
+only one location anyway.
+
+One more thing I'd like to implement is a way to list all the known locations
+by name, id, and possibly their longitude and latitudes, so the user could 
+review all the results of the previous API calls. Maybe later.
+
+Then I ran into the loss of the log. The idea had been to use the operating
+system to print the log for me, and the log was generated in whatever directory
+the user was in at the time. Not the directory with the ``cli.py`` file, but
+whatever the current directory was in the particular shell.
+
+So I needed to add a ``log`` command to print the log.
+
+However, the log is written to a blank file every time you call weather with
+a subcommand. The only thing the user can do without resetting the log is 
+``weather --help``.
+
+Fortunately, click offers the ``invoked_subcommand`` and that allows me to check
+the subcommand and then decide if I want to start a new log::
+
+ 
+    if ctx.invoked_subcommand != "log":
+        logging.basicConfig(filename=os.path.join(DATA_PATH, 'weather.log'),
+                            filemode='w',
+                            format='%(asctime)s:%(levelname)s:%(message)s',
+                            datefmt='%m/%d/%Y %I:%M:%S %p',
+                            level=logging.INFO)
+
+And that lets me bypass logwriting. The actual log is printed simply:
+
+.. code::
+
+    @main.command()
+    @click.pass_context
+    def log(ctx):
+        """Print the log of the last run"""
+        with open(os.path.join(DATA_PATH, 'weather.log'), 'r') as fp:
+            click.echo(fp.read(), nl=False)
+
 

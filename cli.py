@@ -135,17 +135,17 @@ def main(ctx, api_key, api_key_file):
     You need a valid API key from OpenWeatherMap for the tool to work. You can
     sign up for a free account at https://openweathermap.org/appid.
     """
-    logging.basicConfig(filename='weather.log',
-                        filemode='w',
-                        format='%(asctime)s:%(levelname)s:%(message)s',
-                        datefmt='%m/%d/%Y %I:%M:%S %p',
-                        level=logging.INFO)
+    if ctx.invoked_subcommand != "log":
+        logging.basicConfig(filename=os.path.join(DATA_PATH, 'weather.log'),
+                            filemode='w',
+                            format='%(asctime)s:%(levelname)s:%(message)s',
+                            datefmt='%m/%d/%Y %I:%M:%S %p',
+                            level=logging.INFO)
 
     if not os.path.isdir(DATA_PATH):
         logging.info('Creating default data file')
         os.mkdir(DATA_PATH)
 
-    logging.info('Starting Weather CLI')
     filename = os.path.expanduser(api_key_file)
 
     if not api_key and os.path.exists(filename):
@@ -174,6 +174,14 @@ def config(ctx):
 
     with open(api_key_file, 'w') as cfg:
         cfg.write(api_key)
+
+
+@main.command()
+@click.pass_context
+def log(ctx):
+    """Print the log of the last run"""
+    with open(os.path.join(DATA_PATH, 'weather.log'), 'r') as fp:
+        click.echo(fp.read(), nl=False)
 
 
 def get_city_data():
@@ -216,6 +224,16 @@ def setcity(ctx, city, cityid):
     city_data = get_city_data()
     city_data[city] = cityid
     write_city_data(city_data)
+
+
+@main.command()
+@click.pass_context
+def getlocations(ctx):
+    """Return a list of stored locations"""
+    logging.info("Getting list of stored cities")
+    city_data = get_city_data()
+    for key, val in city_data:
+        print(val, key)
 
 
 @main.command()
@@ -285,7 +303,8 @@ def forecast(ctx, location):
         print(day,
               min([item[0] for item in data[day]]),
               max([item[1] for item in data[day]]),
-              ', '.join([k for k, g in groupby(item[2] for item in data[day])]))
+              ', '.join([k for k, g
+                         in groupby(item[2] for item in data[day])]))
 
 
 @main.command()
