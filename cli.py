@@ -29,7 +29,7 @@ import click
 import requests
 
 SAMPLE_API_KEY = 'b1b15e88fa797225412429c1c50c122a1'
-DATA_PATH = os.path.join(os.path.abspath(os.environ['APPDATA']), 'weather')
+DATA_PATH = click.get_app_dir('weather')
 API = {'current': 'https://api.openweathermap.org/data/2.5/weather',
        'forecast': 'https://api.openweathermap.org/data/2.5/forecast',
        }
