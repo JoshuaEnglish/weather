@@ -122,6 +122,7 @@ def get_api_response(ctx: click.core.Context, api: str, location: str) -> dict:
     type=click.Path(),
     default='~/.weather.cfg',
 )
+@click.version_option()
 @click.pass_context
 def main(ctx, api_key, api_key_file):
     """
