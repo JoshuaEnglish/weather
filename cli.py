@@ -302,8 +302,8 @@ def forecast(ctx, location):
 
     for day in sorted(data):
         print(day,
-              min([item[0] for item in data[day]]),
-              max([item[1] for item in data[day]]),
+              "{:5.2f}".format(min([item[0] for item in data[day]])),
+              "{:5.2f}".format(max([item[1] for item in data[day]])),
               ', '.join([k for k, g
                          in groupby(item[2] for item in data[day])]))
 
@@ -323,7 +323,7 @@ def howmuchrain(ctx, location):
         data[date_bit(thing['dt_txt'])] += thing['rain'].get('3h', 0.0)
 
     for day in sorted(data):
-        print(day.strftime("%a %m/%d"), "{:0.2f}mm".format(data[day]),
-              "({:0.3f} inches)".format(data[day]*0.0393701))
+        print(day.strftime("%a %m/%d"), "{:5.02f}mm".format(data[day]),
+              "({:0.03f} inches)".format(data[day]*0.0393701))
     total = sum(data[day] for day in data)
-    print("Total: {:0.2f}mm ({:0.3f} inches".format(total, total*0.0393701))
+    print("Total: {:0.02f}mm ({:0.03f} inches".format(total, total*0.0393701))
