@@ -102,7 +102,7 @@ def get_api_response(ctx: click.core.Context, api: str, location: str) -> dict:
     response = requests.get(url, params)
 
     if response.json()['cod'] not in [200, '200']:
-        print("{cod}: {message}".format(**response.json()))
+        print(f"{response[cod]}: {response[message]}")
         sys.exit(1)
 
     logging.info("Caching response to %s", datapath)
@@ -320,10 +320,11 @@ def howmuchrain(ctx, location):
     data = defaultdict(float)
 
     for thing in response['list']:
-        data[date_bit(thing['dt_txt'])] += thing['rain'].get('3h', 0.0)
+        if 'rain' in thing:
+            data[date_bit(thing['dt_txt'])] += thing['rain'].get('3h', 0.0)
 
     for day in sorted(data):
-        print(day.strftime("%a %m/%d"), "{:5.02f}mm".format(data[day]),
-              "({:0.03f} inches)".format(data[day]*0.0393701))
+        print(f"{day:%a %m/%d} {data[day]:5.2f}mm",
+              f"({data[day]*0.03937:0.02} inches)")
     total = sum(data[day] for day in data)
-    print("Total: {:0.02f}mm ({:0.03f} inches".format(total, total*0.0393701))
+    print(f"Total: {total:.2f}mm ({total*0.03937:.3f} inches)")
