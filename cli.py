@@ -1,4 +1,4 @@
-"""weather command line tool
+"""weather command line utility
 
 Gets current weather from OpenWeatherMap.org.
 
@@ -27,12 +27,14 @@ from itertools import groupby
 
 import click
 import requests
+import pytz
 
 SAMPLE_API_KEY = 'b1b15e88fa797225412429c1c50c122a1'
 DATA_PATH = click.get_app_dir('weather')
 API = {'current': 'https://api.openweathermap.org/data/2.5/weather',
        'forecast': 'https://api.openweathermap.org/data/2.5/forecast',
        }
+UTC = pytz.utc
 
 
 class ApiKey(click.ParamType):
@@ -67,7 +69,7 @@ def build_query(ctx: click.core.Context, location: str) -> dict:
     if location.isdigit():
         query['id'] = location
     elif location in city_data:
-        query['id'] = city_data[location]
+        query['id'] = city_data[location]['id']
     else:
         query['q'] = location
 
@@ -102,7 +104,10 @@ def get_api_response(ctx: click.core.Context, api: str, location: str) -> dict:
     response = requests.get(url, params)
 
     if response.json()['cod'] not in [200, '200']:
-        print(f"{response[cod]}: {response[message]}")
+        cod = response.json()['cod']
+        message = response.json()['message']
+        print(f"{cod}: {message}")
+        logging.error(f"Error {cod}: {message}")
         sys.exit(1)
 
     logging.info("Caching response to %s", datapath)
@@ -130,8 +135,8 @@ def main(ctx, api_key, api_key_file):
     your choice. Provide the city name and optionally a two-digit country code.
     Here are two examples:
 
-    1. London,UK
-    2. Canmore
+        1. London,UK
+        2. Canmore
 
     You need a valid API key from OpenWeatherMap for the tool to work. You can
     sign up for a free account at https://openweathermap.org/appid.
@@ -215,15 +220,17 @@ def write_city_data(city_data):
 @main.command()
 @click.argument('city')
 @click.argument('cityid', type=click.INT)
+@click.argument('timezone')
 @click.pass_context
-def setcity(ctx, city, cityid):
+def setcity(ctx, city, cityid, timezone):
     """
-    Save a city name with a city ID code
+    Save a city name with a city ID code and an optional timezone
     """
     logging.info('Setting City %s to %d', city, cityid)
 
     city_data = get_city_data()
-    city_data[city] = cityid
+    city_data[city]['id'] = cityid
+    city_data[city]['timezone'] = timezone
     write_city_data(city_data)
 
 
@@ -234,7 +241,7 @@ def getlocations(ctx):
     logging.info("Getting list of stored cities")
     city_data = get_city_data()
     for key, val in city_data.items():
-        print(val, key)
+        print(val['id'], key, val['timezone'])
 
 
 @main.command()
@@ -328,3 +335,21 @@ def howmuchrain(ctx, location):
               f"({data[day]*0.03937:0.02} inches)")
     total = sum(data[day] for day in data)
     print(f"Total: {total:.2f}mm ({total*0.03937:.3f} inches)")
+
+
+@main.command()
+@click.argument('location')
+@click.pass_context
+def daylight(ctx, location):
+    """
+    Today's sunrise and sunset
+    """
+    logging.info("Getting Sunrise and Sunset data")
+    response = get_api_response(ctx, 'current', location)
+    city_data = get_city_data()[location]
+    sunrise = datetime.datetime.utcfromtimestamp(response['sys']['sunrise'])
+    sunset = datetime.datetime.utcfromtimestamp(response['sys']['sunset'])
+    here = pytz.timezone(city_data['timezone'])
+    sunrise = UTC.localize(sunrise).astimezone(here)
+    sunset = UTC.localize(sunset).astimezone(here)
+    print(f"Daylight Hours: {sunrise:%I:%M %p} - {sunset:%I:%M %p}")
