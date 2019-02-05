@@ -13,6 +13,11 @@ OpenWeatherMaps offers a free API and requests free users do not rush the
 servers and wait 10 minutes between calls for current weather. To honor this
 request there is a caching mechanism that stores results and only requests
 fresh data from the server if the cached response is over 10 minutes old.
+
+If you have an OpenWeatherMap API key, the `weather config` command wil prompt
+you for it.
+
+
 """
 
 import re
@@ -141,6 +146,10 @@ def main(ctx, api_key, api_key_file):
     You need a valid API key from OpenWeatherMap for the tool to work. You can
     sign up for a free account at https://openweathermap.org/appid.
     """
+    if not os.path.exists(DATA_PATH):
+        logging.info("Creating default data folder")
+        os.mkdir(DATA_PATH)
+
     if ctx.invoked_subcommand not in ["log", "open"]:
         logging.basicConfig(filename=os.path.join(DATA_PATH, 'weather.log'),
                             filemode='w',
