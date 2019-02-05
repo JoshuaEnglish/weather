@@ -141,7 +141,7 @@ def main(ctx, api_key, api_key_file):
     You need a valid API key from OpenWeatherMap for the tool to work. You can
     sign up for a free account at https://openweathermap.org/appid.
     """
-    if ctx.invoked_subcommand != "log":
+    if ctx.invoked_subcommand not in ["log", "open"]:
         logging.basicConfig(filename=os.path.join(DATA_PATH, 'weather.log'),
                             filemode='w',
                             format='%(asctime)s:%(levelname)s:%(message)s',
@@ -353,3 +353,10 @@ def daylight(ctx, location):
     sunrise = UTC.localize(sunrise).astimezone(here)
     sunset = UTC.localize(sunset).astimezone(here)
     print(f"Daylight Hours: {sunrise:%I:%M %p} - {sunset:%I:%M %p}")
+
+
+@main.command()
+@click.pass_context
+def showdata(ctx):
+    """Opens the data folder"""
+    os.startfile(DATA_PATH)
