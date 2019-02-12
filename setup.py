@@ -3,8 +3,10 @@ from setuptools import setup
 setup(
     name='weather',
     version='1.1',
+    author="Joshua English",
+    author_email="josh@joshuarenglish.com",
     py_modules=['cli'],
-    install_requires=['Click', 'Sphinx-Click', 'sphink-autodoc-annotation',
+    install_requires=['Click', 'Sphinx-Click', 'sphinx-autodoc-annotation',
                       'pytz', 'requests'],
     entry_points={
         'console_scripts': [

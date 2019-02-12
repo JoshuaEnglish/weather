@@ -41,6 +41,22 @@ API = {'current': 'https://api.openweathermap.org/data/2.5/weather',
        }
 UTC = pytz.utc
 
+logging.root.setLevel(logging.NOTSET)
+
+file_formatter = logging.Formatter(
+    '%(asctime)s:%(levelname)s:%(message)s',
+    datefmt="%m/%d/%Y %I:%M:%S %p")
+
+historical_handler = logging.FileHandler(
+    filename=os.path.join(DATA_PATH, 'history.log'),
+    mode="a")
+historical_handler.setLevel(logging.DEBUG)
+historical_handler.setFormatter(file_formatter)
+logging.root.addHandler(historical_handler)
+screen_handler = logging.StreamHandler()
+screen_handler.setFormatter(logging.Formatter('%(levelname)s:%(message)s'))
+logging.root.addHandler(screen_handler)
+
 
 class ApiKey(click.ParamType):
     name = 'api-key'
@@ -115,7 +131,7 @@ def get_api_response(ctx: click.core.Context, api: str, location: str) -> dict:
         logging.error(f"Error {cod}: {message}")
         sys.exit(1)
 
-    logging.info("Caching response to %s", datapath)
+    logging.info(f"Caching response to {datapath}")
     with open(datapath, 'w') as fp:
         json.dump(response.json(), fp)
     return response.json()
@@ -125,16 +141,18 @@ def get_api_response(ctx: click.core.Context, api: str, location: str) -> dict:
 @click.option(
     '--api-key', '-a',
     type=ApiKey(),
-    help='your API key for the OpenWeatherMap API',
+    help='Your API key for the OpenWeatherMap API',
 )
 @click.option(
     '--api-key-file', '-c',
     type=click.Path(),
     default='~/.weather.cfg',
 )
+@click.option('-q', '--quiet', count=True)
+@click.option('-v', '--verbose', count=True)
 @click.version_option()
 @click.pass_context
-def main(ctx, api_key, api_key_file):
+def main(ctx, api_key, api_key_file, quiet, verbose):
     """
     A little weather tool that shows you the current weather in a LOCATION of
     your choice. Provide the city name and optionally a two-digit country code.
@@ -146,16 +164,19 @@ def main(ctx, api_key, api_key_file):
     You need a valid API key from OpenWeatherMap for the tool to work. You can
     sign up for a free account at https://openweathermap.org/appid.
     """
+    screen_handler.setLevel(30+10*(quiet-verbose))
+    logging.debug(f'Setting Screen Handler level to {30+10*(quiet-verbose)}')
     if not os.path.exists(DATA_PATH):
         logging.info("Creating default data folder")
         os.mkdir(DATA_PATH)
 
-    if ctx.invoked_subcommand not in ["log", "open"]:
-        logging.basicConfig(filename=os.path.join(DATA_PATH, 'weather.log'),
-                            filemode='w',
-                            format='%(asctime)s:%(levelname)s:%(message)s',
-                            datefmt='%m/%d/%Y %I:%M:%S %p',
-                            level=logging.INFO)
+    if ctx.invoked_subcommand not in ["log", "showdata"]:
+        lastrun_handler = logging.FileHandler(
+            filename=os.path.join(DATA_PATH, 'weather.log'),
+            mode="w")
+        lastrun_handler.setFormatter(file_formatter)
+        lastrun_handler.setLevel(logging.INFO)
+        logging.root.addHandler(lastrun_handler)
 
     if not os.path.isdir(DATA_PATH):
         logging.info('Creating default data file')
@@ -178,6 +199,7 @@ def main(ctx, api_key, api_key_file):
 def config(ctx):
     """
     Store the API key for OpenWeatherMap.
+    The application will prompt you for your key.
     """
     logging.info('Setting Configuration File')
     api_key_file = ctx.obj['api_key_file']
@@ -221,6 +243,7 @@ def write_city_data(city_data):
     """
     Stores the city data
     """
+    logging.info("Writing city data")
     cities_path = os.path.join(DATA_PATH, 'cities.json')
     with open(cities_path, 'w') as fp:
         json.dump(city_data, fp)
@@ -238,6 +261,8 @@ def setcity(ctx, city, cityid, timezone):
     logging.info('Setting City %s to %d', city, cityid)
 
     city_data = get_city_data()
+    if city not in city_data:
+        city_data[city] = {}
     city_data[city]['id'] = cityid
     city_data[city]['timezone'] = timezone
     write_city_data(city_data)
