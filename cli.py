@@ -165,7 +165,6 @@ def main(ctx, api_key, api_key_file, quiet, verbose):
     sign up for a free account at https://openweathermap.org/appid.
     """
     screen_handler.setLevel(30+10*(quiet-verbose))
-    logging.debug(f'Setting Screen Handler level to {30+10*(quiet-verbose)}')
     if not os.path.exists(DATA_PATH):
         logging.info("Creating default data folder")
         os.mkdir(DATA_PATH)
@@ -178,9 +177,9 @@ def main(ctx, api_key, api_key_file, quiet, verbose):
         lastrun_handler.setLevel(logging.INFO)
         logging.root.addHandler(lastrun_handler)
 
-    if not os.path.isdir(DATA_PATH):
-        logging.info('Creating default data file')
-        os.mkdir(DATA_PATH)
+    # if not os.path.isdir(DATA_PATH):
+        # logging.info('Creating default data file')
+        # os.mkdir(DATA_PATH)
 
     filename = os.path.expanduser(api_key_file)
 
@@ -321,6 +320,7 @@ def dump(ctx, location):
 
 
 def date_bit(text):
+    """Return a datetime.date representation of a datetime stamp"""
     return datetime.datetime.strptime(text, "%Y-%m-%d %H:%M:%S").date()
 
 
