@@ -16,8 +16,6 @@ fresh data from the server if the cached response is over 10 minutes old.
 
 If you have an OpenWeatherMap API key, the `weather config` command wil prompt
 you for it.
-
-
 """
 
 import re
@@ -53,6 +51,7 @@ historical_handler = logging.FileHandler(
 historical_handler.setLevel(logging.DEBUG)
 historical_handler.setFormatter(file_formatter)
 logging.root.addHandler(historical_handler)
+
 screen_handler = logging.StreamHandler()
 screen_handler.setFormatter(logging.Formatter('%(levelname)s:%(message)s'))
 logging.root.addHandler(screen_handler)
@@ -109,7 +108,7 @@ def get_api_response(ctx: click.core.Context, api: str, location: str) -> dict:
     if api not in API:
         raise ValueError("api must be 'current' or 'forecast'")
 
-    datapath = os.path.join(DATA_PATH, f"{location}-{api}.json")
+    datapath = os.path.join(DATA_PATH, f"{location.title()}-{api}.json")
 
     if (os.path.exists(datapath)
             and (time.time() - os.stat(datapath).st_mtime) <= 600):
@@ -146,7 +145,7 @@ def get_api_response(ctx: click.core.Context, api: str, location: str) -> dict:
 @click.option(
     '--api-key-file', '-c',
     type=click.Path(),
-    default='~/.weather.cfg',
+    default='~/.weather.api',
 )
 @click.option('-q', '--quiet', count=True)
 @click.option('-v', '--verbose', count=True)
@@ -195,12 +194,12 @@ def main(ctx, api_key, api_key_file, quiet, verbose):
 
 @main.command()
 @click.pass_context
-def config(ctx):
+def storeapi(ctx):
     """
     Store the API key for OpenWeatherMap.
     The application will prompt you for your key.
     """
-    logging.info('Setting Configuration File')
+    logging.info('Setting API Key File')
     api_key_file = ctx.obj['api_key_file']
 
     api_key = click.prompt(
@@ -255,7 +254,12 @@ def write_city_data(city_data):
 @click.pass_context
 def setcity(ctx, city, cityid, timezone):
     """
-    Save a city name with a city ID code and an optional timezone
+    Save a city name with a city ID code and timezone.
+
+    To get a list, launch python and enter:
+        import pytz
+        for tz in pytz.all_timezones
+            print(tz)
     """
     logging.info('Setting City %s to %d', city, cityid)
 
@@ -296,15 +300,15 @@ def current(ctx, location):
 @click.pass_context
 def temp(ctx, location):
     """
-    Show the current temperature and low and high
+    Show the current temperature and the deviation of the current temperature.
     """
     logging.info("Getting temperature for %s", location)
     response = get_api_response(ctx, 'current', location)
     temp = response['main']['temp']
     low = response['main']['temp_min']
     high = response['main']['temp_max']
-    print(f"Current Temperature is {temp} with a low of {low} "
-          f"and a high of {high}")
+    print(f"Current Temperature is {temp} or anywhere between {low} "
+          f"and {high}")
 
 
 @main.command()
