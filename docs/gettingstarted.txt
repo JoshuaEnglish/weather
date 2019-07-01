@@ -14,7 +14,7 @@ Otherwise, install from GitHub using::
 You will need an `api key`_ from OpenWeatherMap.org to make this tool work.
 Once you have this key you can enter it into the program with::
 
-    $ weather config
+    $ weather storeapi
 
 The program will prompt you to paste your API Key and it will be stored for
 future use.
@@ -27,7 +27,7 @@ weather report with::
 
 You can see what the program did under the hood::
 
-    $ type weather.log
+    $ weather log
     03/26/2018 12:58:47 PM:INFO:Starting Weather CLI
     03/26/2018 12:58:47 PM:INFO:Getting current weather for Portland
     03/26/2018 12:58:47 PM:INFO:Getting response from host
@@ -36,7 +36,7 @@ You can see what the program did under the hood::
 
 How do you know you have the right city? You can examine the response::
 
-    $ type data\Portland-current.json
+    $ weather dump Portland
     {"coord": {"lon": -122.67, "lat": 45.52}, "weather": [{"id": 500, "main":
     "Rain", "description": "light rain", "icon": "10d"}], "base": "stations",
     "main": {"temp": 45.5, "pressure": 1028, "humidity": 75, "temp_min": 44.6,
@@ -62,11 +62,11 @@ Now the next call to the "Portland" location will substitute the exact city id.
 Next, if we want the temperature::
 
     $ weather temp Portland
-    Current temperature is 46.4 with a low of 46.4 and a high of 46.4
+    Current temperature is 72.5 with a range of 69.01 to 75.90
 
 If you examine the log::
 
-    $ type weather.log
+    $ weather log
     03/26/2018 01:04:03 PM:INFO:Starting Weather CLI
     03/26/2018 01:04:03 PM:INFO:Getting temperature for Portland
     03/26/2018 01:04:03 PM:INFO:Returning cached copy of request

@@ -85,11 +85,12 @@ def build_query(ctx: click.core.Context, location: str) -> dict:
         }
 
     city_data = get_city_data()
+    locations = [city.lower() for city in city_data]
 
     if location.isdigit():
         query['id'] = location
-    elif location in city_data:
-        query['id'] = city_data[location]['id']
+    elif location.lower() in locations:
+        query['id'] = city_data[location.title()]['id']
     else:
         query['q'] = location
 
@@ -145,7 +146,7 @@ def get_api_response(ctx: click.core.Context, api: str, location: str) -> dict:
 @click.option(
     '--api-key-file', '-c',
     type=click.Path(),
-    default='~/.weather.api',
+    default='~/.weather.apikey.txt',
 )
 @click.option('-q', '--quiet', count=True)
 @click.option('-v', '--verbose', count=True)
@@ -307,8 +308,7 @@ def temp(ctx, location):
     temp = response['main']['temp']
     low = response['main']['temp_min']
     high = response['main']['temp_max']
-    print(f"Current Temperature is {temp} or anywhere between {low} "
-          f"and {high}")
+    print(f"Current Temperature is {temp} with a range of {low} to {high}")
 
 
 @main.command()
@@ -398,3 +398,22 @@ def daylight(ctx, location):
 def showdata(ctx):
     """Opens the data folder"""
     os.startfile(DATA_PATH)
+
+
+@main.command()
+@click.argument('data')
+@click.argument('location')
+@click.pass_context
+def clearcache(ctx, data, location):
+    """
+    Remove the current or forecast data for a location
+    """
+
+    datapath = os.path.join(DATA_PATH, f"{location.title()}-{data}.json")
+    if os.path.exists(datapath):
+        os.remove(datapath)
+        logging.info("Removed %s", datapath)
+        print(f"Removed {data} file for {location.title()}")
+    else:
+        logging.info("File does not exist: %s", datapath)
+        print("File not found")
