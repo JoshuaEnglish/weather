@@ -45,8 +45,10 @@ file_formatter = logging.Formatter(
     '%(asctime)s:%(levelname)s:%(message)s',
     datefmt="%m/%d/%Y %I:%M:%S %p")
 
+history_filename = os.path.join(DATA_PATH, 'history.log')
+os.makedirs(os.path.dirname(history_filename), exist_ok=True)
 historical_handler = logging.FileHandler(
-    filename=os.path.join(DATA_PATH, 'history.log'),
+    filename=history_filename,
     mode="a")
 historical_handler.setLevel(logging.DEBUG)
 historical_handler.setFormatter(file_formatter)
