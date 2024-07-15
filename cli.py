@@ -37,7 +37,6 @@ DATA_PATH = click.get_app_dir("weather")
 API = {
     "current": "https://api.openweathermap.org/data/2.5/weather",
     "forecast": "https://api.openweathermap.org/data/2.5/forecast",
-    "hourly": "https://api.openweathermap.org/data/2.5/forecast/hourly",
 }
 UTC = pytz.utc
 
@@ -153,7 +152,7 @@ def get_api_response(ctx: click.core.Context, api: str, location: str) -> dict:
 )
 @click.option("-q", "--quiet", count=True)
 @click.option("-v", "--verbose", count=True)
-@click.version_option(package_name='weather')
+@click.version_option(package_name="weather")
 @click.pass_context
 def main(ctx, api_key, api_key_file, quiet, verbose):
     """
@@ -328,6 +327,24 @@ def dump(ctx, location):
 def date_bit(text):
     """Return a datetime.date representation of a datetime stamp"""
     return datetime.datetime.strptime(text, "%Y-%m-%d %H:%M:%S").date()
+
+
+@main.command()
+@click.argument("location")
+@click.pass_context
+def deets(ctx, location):
+    """
+    Lists a details forecast
+    """
+    logging.info("Getting forecast details")
+    response = get_api_response(ctx, "forecast", location)
+
+    for thing in response["list"]:
+        dt = int(thing["dt"]) # this appears to be local time, API says UTC
+        when = datetime.datetime.fromtimestamp(dt)
+        temp = float(thing["main"]["temp"])
+        desc = thing["weather"][0]["description"]
+        print(f"{when:%a %Y-%m-%d %I%p}: {temp:f}F and {desc}")
 
 
 @main.command()

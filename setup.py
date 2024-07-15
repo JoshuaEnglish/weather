@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='weather',
-    version='1.1',
+    version='1.2',
     author="Joshua English",
     author_email="josh@joshuarenglish.com",
     py_modules=['cli'],
